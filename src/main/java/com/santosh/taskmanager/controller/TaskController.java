@@ -1,11 +1,22 @@
 package com.santosh.taskmanager.controller;
 
+import com.santosh.taskmanager.dto.TaskRequestDTO;
+import com.santosh.taskmanager.dto.TaskResponseDTO;
+import com.santosh.taskmanager.mapper.TaskMapper;
 import com.santosh.taskmanager.model.Task;
 import com.santosh.taskmanager.repository.TaskRepository;
+import com.santosh.taskmanager.service.TaskService;
+import com.santosh.taskmanager.util.TaskSpecification;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -17,90 +28,64 @@ import java.util.List;
 @RequestMapping("/api/tasks")
 @SecurityRequirement(name = "bearerAuth")
 public class TaskController {
-    /*private final TaskService service;
 
-    public TaskController(TaskService service) {
-        this.service = service;
-    }*/
+    @Autowired
+    private TaskService taskService;
 
-    private final TaskRepository taskRepository;
+    @Autowired
+    private TaskMapper taskMapper;
 
-    public TaskController(TaskRepository taskRepository) {
-        this.taskRepository = taskRepository;
-    }
-
-    /*//Read All Tasks
-    @GetMapping
-    public List<Task> getAllTasks() {
-        return service.getAllTasks();
-    }
-
-    //Read Task by ID
-    @GetMapping("/{id}")
-    public Task getTaskById(@PathVariable Long id) {
-        return service.getTaskById(id);
-    }
-
-    //Create Task
+    @Operation(summary = "To create the Task")
     @PostMapping
-    public Task createTask(@RequestBody Task task) {
-        return service.createTask(task);
+    public ResponseEntity<TaskResponseDTO> createTask(@RequestBody @Valid TaskRequestDTO dto) {
+        return new ResponseEntity<>(taskService.createTask(dto), HttpStatus.CREATED);
     }
 
-    //Update Task
-    @PutMapping("/{id}")
-    public Task updateTask(@PathVariable Long id, @RequestBody Task task) {
-        return service.updateTask(id, task);
-    }
-
-    //Delete Task
-    @DeleteMapping("/{id}")
-    public void deleteTask(@PathVariable Long id) {
-        service.deleteTask(id);
-    }*/
-
-    //Read All Tasks
+    @Operation(summary = "To retrive all the Task")
     @GetMapping
-    public List<Task> getAllTasks() {
-        return taskRepository.findAll();
+    public ResponseEntity<List<TaskResponseDTO>> getAllTasks() {
+        return ResponseEntity.ok(taskService.getAllTasks());
     }
 
-    //Read Task by ID
+    @Operation(summary = "To get the Task by Id")
     @GetMapping("/{id}")
-    public ResponseEntity<Task> getTaskById(@PathVariable Long id) {
-        return taskRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<TaskResponseDTO> getTask(@PathVariable Long id) {
+        return ResponseEntity.ok(taskService.getTask(id));
     }
 
-    //Create Task
-    @PostMapping
-    public ResponseEntity<Task> createTask(@Valid @RequestBody Task task) {
-        Task saved = taskRepository.save(task);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
-    }
-
-    //Update Task
+    @Operation(summary = "To update the Task")
     @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable Long id, @Valid @RequestBody Task updatedTask) {
-        return taskRepository.findById(id).map(task -> {
-            task.setTitle(updatedTask.getTitle());
-            task.setDescription(updatedTask.getDescription());
-            task.setCompleted(updatedTask.isCompleted());
-            return ResponseEntity.ok(taskRepository.save(task));
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<TaskResponseDTO> updateTask(@PathVariable Long id, @RequestBody TaskRequestDTO dto) {
+        return ResponseEntity.ok(taskService.updateTask(id, dto));
     }
 
-    //Delete Task
-    @Operation(summary = "Delete a task by ID")
-    @ApiResponse(responseCode = "204", description = "Task deleted successfully")
-    @ApiResponse(responseCode = "404", description = "Task not found")
+    @Operation(summary = "To delete the Task")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
-        return taskRepository.findById(id).map(task -> {
-            taskRepository.delete(task);
-            return ResponseEntity.noContent().<Void>build();
-        }).orElse(ResponseEntity.notFound().build());
+        taskService.deleteTask(id);
+        return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<TaskResponseDTO>> getTasksPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+        return ResponseEntity.ok(taskService.getTasksPage(page, size));
+    }
+
+    @GetMapping("/filtered")
+    public ResponseEntity<Page<TaskResponseDTO>> getFilteredTasks(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "id") String sortBy) {
+
+        Page<Task> taskPage = taskService.getFilteredTasks(status, priority, page, size, sortBy);
+        Page<TaskResponseDTO> response = taskPage.map(taskMapper::convertToDto);
+        return ResponseEntity.ok(response);
+    }
+
+
 
 }
