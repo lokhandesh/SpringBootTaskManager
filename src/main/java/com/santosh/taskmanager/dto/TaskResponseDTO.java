@@ -15,6 +15,7 @@ public class TaskResponseDTO {
     private String status;
     private String priority;
     private LocalDateTime createdAt;
+    private Long userId;
 
     // Getters and setters
 }

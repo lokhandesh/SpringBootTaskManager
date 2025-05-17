@@ -13,5 +13,6 @@ public class TaskRequestDTO {
     private boolean completed;
     private String status;
     private String priority;
+    private Long userId;
 
 }

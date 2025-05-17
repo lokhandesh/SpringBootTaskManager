@@ -14,5 +14,6 @@ public interface TaskService {
     void deleteTask(Long id);
     Page<TaskResponseDTO> getTasksPage(int page, int size);
     Page<Task> getFilteredTasks(String status, String priority, int page, int size, String sortBy);
+    List<TaskResponseDTO> getTasksByUserId(Long userId);
 
 }

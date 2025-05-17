@@ -15,9 +15,12 @@ public class TaskMapper {
         dto.setId(task.getId());
         dto.setTitle(task.getTitle());
         dto.setDescription(task.getDescription());
+        dto.setDueDate(task.getDueDate());
+        dto.setCompleted(task.isCompleted());
         dto.setStatus(task.getStatus());
         dto.setPriority(task.getPriority());
         dto.setCreatedAt(task.getCreatedAt());
+        dto.setUserId(task.getUser().getId());
         return dto;
     }
 

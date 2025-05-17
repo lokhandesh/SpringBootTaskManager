@@ -3,6 +3,8 @@ package com.santosh.taskmanager.service.impl;
 import com.santosh.taskmanager.dto.TaskRequestDTO;
 import com.santosh.taskmanager.dto.TaskResponseDTO;
 import com.santosh.taskmanager.exception.TaskNotFoundException;
+import com.santosh.taskmanager.jwtuser.AppUser;
+import com.santosh.taskmanager.jwtuser.UserRepository;
 import com.santosh.taskmanager.mapper.TaskMapper;
 import com.santosh.taskmanager.model.Task;
 import com.santosh.taskmanager.repository.TaskRepository;
@@ -15,6 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -32,12 +36,28 @@ public class TaskServiceImpl implements TaskService {
     @Autowired
     private TaskMapper taskMapper;
 
-
+    @Autowired
+    private UserRepository userRepository;
 
     @Override
     public TaskResponseDTO createTask(TaskRequestDTO dto) {
-        Task task = taskMapper.convertToEntity(dto);
+        // Get currently authenticated username
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // Fetch user from DB
+        AppUser user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        Task task = new Task();
+        task.setTitle(dto.getTitle());
+        task.setDescription(dto.getDescription());
+        task.setDueDate(dto.getDueDate());
+        task.setCompleted(dto.isCompleted());
+        task.setStatus(dto.getStatus());
+        task.setPriority(dto.getPriority());
         task.setCreatedAt(LocalDateTime.now());
+        task.setUser(user);
+
         Task savedTask = taskRepository.save(task);
         return taskMapper.convertToDto(savedTask);
     }
@@ -105,5 +125,12 @@ public class TaskServiceImpl implements TaskService {
                 .and(TaskSpecification.hasPriority(priority));
 
         return taskRepository.findAll(spec, pageable);
+    }
+    @Override
+    public List<TaskResponseDTO> getTasksByUserId(Long userId) {
+        List<Task> tasks = taskRepository.findByUserId(userId);
+        return tasks.stream()
+                .map(taskMapper::convertToDto)
+                .collect(Collectors.toList());
     }
 }
