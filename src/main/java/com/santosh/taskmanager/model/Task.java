@@ -1,5 +1,6 @@
 package com.santosh.taskmanager.model;
 
+import com.santosh.taskmanager.jwtuser.AppUser;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -35,6 +36,10 @@ public class Task {
     private String status;
     private String priority;
     private LocalDateTime createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private AppUser user;
 
     /*public Long getId() {
         return id;
